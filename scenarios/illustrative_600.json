@@ -1,0 +1,20 @@
+{
+  "name": "illustrative_600",
+  "_note": "ILLUSTRATIVE design to be confirmed with Systems. Not official Rivada orbital parameters.",
+  "epoch": "2026-01-01T00:00:00+00:00",
+  "time": {"duration_h": 2, "step_s": 30},
+  "shells": [
+    {"name": "POLAR", "altitude_km": 1050, "inclination_deg": 88, "planes": 12, "sats_per_plane": 24, "phasing": 1, "pattern": "star"},
+    {"name": "INCL",  "altitude_km": 1050, "inclination_deg": 65, "planes": 12, "sats_per_plane": 24, "phasing": 1, "pattern": "delta"}
+  ],
+  "terminals": [
+    {"id": "UT-London",       "lat_deg": 51.51,  "lon_deg": -0.13,   "alt_m": 20,  "min_el_deg": 25},
+    {"id": "UT-Singapore",    "lat_deg": 1.35,   "lon_deg": 103.82,  "alt_m": 15,  "min_el_deg": 25},
+    {"id": "UT-SaoPaulo",     "lat_deg": -23.55, "lon_deg": -46.63,  "alt_m": 760, "min_el_deg": 25},
+    {"id": "UT-Tromso",       "lat_deg": 69.65,  "lon_deg": 18.96,   "alt_m": 10,  "min_el_deg": 25},
+    {"id": "UT-NAtlantic-Ship","lat_deg": 45.0,  "lon_deg": -30.0,   "alt_m": 0,   "min_el_deg": 25},
+    {"id": "UT-Nairobi",      "lat_deg": -1.29,  "lon_deg": 36.82,   "alt_m": 1795,"min_el_deg": 25},
+    {"id": "GW-Frankfurt",    "lat_deg": 50.11,  "lon_deg": 8.68,    "alt_m": 110, "min_el_deg": 10, "kind": "gateway"},
+    {"id": "GW-Svalbard",     "lat_deg": 78.23,  "lon_deg": 15.39,   "alt_m": 450, "min_el_deg": 10, "kind": "gateway"}
+  ]
+}
