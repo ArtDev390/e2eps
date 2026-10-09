@@ -7,6 +7,7 @@ Architecture, workflow and Digital Twin diagrams: [`docs/ARCHITECTURE.md`](docs/
 Open questions for Engineering and the assumptions made to move forward:
 [`docs/QUESTIONS_AND_ASSUMPTIONS.md`](docs/QUESTIONS_AND_ASSUMPTIONS.md).
 Why these modules, and why their inputs/outputs matter: [`docs/MODULES.md`](docs/MODULES.md).
+Prompts used in Claude: [`docs/AI_PROMPTS.md`](docs/AI_PROMPTS.md).
 
 ## Inputs → outputs
 
