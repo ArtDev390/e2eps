@@ -4,6 +4,8 @@ Two foundation modules of the **End-to-End Performance Simulator (E2EPS)** for a
 ~600-satellite LEO constellation, plus a thin CLI and geometry-level KPIs.
 
 Architecture, workflow and Digital Twin diagrams: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Open questions for Engineering and the assumptions made to move forward:
+[`docs/QUESTIONS_AND_ASSUMPTIONS.md`](docs/QUESTIONS_AND_ASSUMPTIONS.md).
 
 ## Inputs → outputs
 
@@ -44,5 +46,5 @@ src/e2eps/   frames.py  orbit.py  visibility.py  kpi.py  scenario.py  cli.py
 scenarios/   illustrative_600.json  what_if_polar_only.json
 tests/       test_core.py        
 benchmarks/  bench_visibility.py
-docs/        ARCHITECTURE.md
+docs/        ARCHITECTURE.md  QUESTIONS_AND_ASSUMPTIONS.md
 ```
