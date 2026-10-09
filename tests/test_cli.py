@@ -2,8 +2,10 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
+
 from e2eps import __version__
-from e2eps.cli import main
+from e2eps.cli import PASS_FIELDS, main
 from e2eps.scenario import load_scenario
 
 SCENARIO = Path(__file__).resolve().parents[1] / "scenarios" / "illustrative_600.json"
@@ -27,3 +29,30 @@ def test_cli_writes_all_outputs(tmp_path, capsys):
     assert meta["satellites"] == 576
 
     assert f"E2EPS {__version__}" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("flag, value", [
+    ("--hours", "0"), ("--hours", "-1"),     # 0 used to be silently replaced by the scenario value
+    ("--step", "0"), ("--step", "-30"),      # negative used to crash deep in numpy
+    ("--chunk", "0"), ("--chunk", "-5"),
+])
+def test_cli_rejects_non_positive_overrides(tmp_path, capsys, flag, value):
+    with pytest.raises(SystemExit) as e:
+        main(["--scenario", str(SCENARIO), flag, value, "--out", str(tmp_path)])
+    assert e.value.code == 2                             # argparse usage error
+    assert "must be > 0" in capsys.readouterr().err
+    assert not any(tmp_path.iterdir())                   # nothing written
+
+
+def test_cli_writes_passes_header_when_nothing_visible(tmp_path):
+    d = json.loads(SCENARIO.read_text())
+    for t in d["terminals"]:
+        t["min_el_deg"] = 89.9                           # practically never satisfied
+    sc_path = tmp_path / "never_visible.json"
+    sc_path.write_text(json.dumps(d))
+    out = tmp_path / "out"
+    main(["--scenario", str(sc_path), "--hours", "0.1", "--out", str(out)])
+    with (out / "passes.csv").open() as f:
+        reader = csv.DictReader(f)
+        assert list(reader) == []
+        assert reader.fieldnames == PASS_FIELDS

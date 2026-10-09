@@ -24,8 +24,15 @@ class Scenario:
 def load_scenario(path: str | Path) -> Scenario:
     raw = Path(path).read_bytes()
     d = json.loads(raw)
-    shells = [Shell(**s) for s in d["shells"]]
-    terms = [Terminal(**t) for t in d["terminals"]]
+    if "epoch" not in d:
+        raise ValueError("epoch is required, e.g. \"2026-01-01T00:00:00+00:00\"")
+    epoch = datetime.fromisoformat(d["epoch"])
+    if epoch.utcoffset() is None:        # naive -> machine-local time -> results differ per machine
+        raise ValueError(f"epoch {d['epoch']!r} has no timezone; add one, e.g. +00:00")
+    shells = [Shell(**s) for s in d.get("shells", [])]
+    terms = [Terminal(**t) for t in d.get("terminals", [])]
+    if not shells or not terms:
+        raise ValueError("scenario needs at least one shell and one terminal")
     for s in shells:
         if s.pattern not in ("delta", "star"):
             raise ValueError(f"{s.name}: pattern must be 'delta' or 'star'")
@@ -42,11 +49,13 @@ def load_scenario(path: str | Path) -> Scenario:
             raise ValueError(f"{t.id}: invalid latitude or elevation mask")
         if not (-180 <= t.lon_deg <= 180):
             raise ValueError(f"{t.id}: longitude {t.lon_deg} deg outside [-180, 180]")
+        if t.kind not in ("user", "gateway"):
+            raise ValueError(f"{t.id}: kind must be 'user' or 'gateway', got {t.kind!r}")
     if len({t.id for t in terms}) != len(terms):
         raise ValueError("terminal ids must be unique")
     time = d.get("time", {})
     duration_h, step_s = float(time.get("duration_h", 2)), float(time.get("step_s", 30))
     if not (duration_h > 0 and step_s > 0):
         raise ValueError("time.duration_h and time.step_s must be > 0")
-    return Scenario(d.get("name", Path(path).stem), datetime.fromisoformat(d["epoch"]),
+    return Scenario(d.get("name", Path(path).stem), epoch,
                     duration_h, step_s, shells, terms, hashlib.sha256(raw).hexdigest()[:12])

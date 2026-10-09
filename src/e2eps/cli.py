@@ -16,26 +16,41 @@ from .scenario import load_scenario
 from .visibility import TerminalSet, compute_visibility, passes
 
 
-def _write_csv(path: Path, rows: list[dict]) -> None:
-    if not rows:
+PASS_FIELDS = ["terminal", "satellite", "start_s", "end_s", "duration_s", "max_el_deg"]
+
+
+def _write_csv(path: Path, rows: list[dict], fields: list[str] | None = None) -> None:
+    """Write rows; with `fields` given, an empty table still gets its header (stable output set)."""
+    if not rows and fields is None:
         return
     with path.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w = csv.DictWriter(f, fieldnames=fields or list(rows[0]))
         w.writeheader()
         w.writerows(rows)
+
+
+def _positive(kind):
+    """argparse type: a number > 0 (0 must not silently mean 'use the scenario value')."""
+    def parse(s: str):
+        v = kind(s)
+        if not v > 0:
+            raise argparse.ArgumentTypeError(f"must be > 0, got {s}")
+        return v
+    return parse
 
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="e2eps", description=__doc__)
     ap.add_argument("--scenario", required=True)
-    ap.add_argument("--hours", type=float, help="override scenario duration")
-    ap.add_argument("--step", type=float, help="override time step [s]")
-    ap.add_argument("--chunk", type=int, default=120, help="time steps per chunk (memory bound)")
+    ap.add_argument("--hours", type=_positive(float), help="override scenario duration")
+    ap.add_argument("--step", type=_positive(float), help="override time step [s]")
+    ap.add_argument("--chunk", type=_positive(int), default=120, help="time steps per chunk (memory bound)")
     ap.add_argument("--out", default="out")
     a = ap.parse_args(argv)
 
     sc = load_scenario(a.scenario)
-    hours, step = a.hours or sc.duration_h, a.step or sc.step_s
+    hours = a.hours if a.hours is not None else sc.duration_h
+    step = a.step if a.step is not None else sc.step_s
     t_s = np.arange(0.0, hours * 3600.0 + 1e-9, step)
 
     t0 = time.perf_counter()
@@ -53,7 +68,7 @@ def main(argv: list[str] | None = None) -> None:
     _write_csv(out / "passes.csv", [
         {"terminal": res.terminal_ids[g], "satellite": res.sat_ids[n], "start_s": s, "end_s": e,
          "duration_s": e - s + step, "max_el_deg": round(float(m), 2)}
-        for g, n, s, e, m in zip(p["g"], p["n"], p["start_s"], p["end_s"], p["max_el_deg"])])
+        for g, n, s, e, m in zip(p["g"], p["n"], p["start_s"], p["end_s"], p["max_el_deg"])], PASS_FIELDS)
     _write_csv(out / "serving_timeseries.csv", [
         {"t_s": res.t_s[t], "terminal": tid, "n_visible": int(res.n_visible[t, g]),
          "serving_sat": res.sat_ids[res.best_sat[t, g]] if res.best_sat[t, g] >= 0 else "",

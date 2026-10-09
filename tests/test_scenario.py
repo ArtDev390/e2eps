@@ -63,6 +63,7 @@ def test_hash_changes_with_content(tmp_path):
     (("shells", 0, "phasing"), 3),                        # planes - 1
     (("terminals", 0, "lon_deg"), 180),
     (("terminals", 0, "lon_deg"), -180),
+    (("epoch",), "2026-01-01T01:00:00+01:00"),            # non-UTC offset is fine
 ])
 def test_accepts_boundary_values(tmp_path, path, value):
     load_scenario(_write(tmp_path, _with(path, value)))
@@ -87,7 +88,17 @@ def test_accepts_boundary_values(tmp_path, path, value):
     (("terminals", 0, "min_el_deg"), 90, "elevation"),
     (("terminals", 0, "min_el_deg"), -5, "elevation"),
     (("terminals", 1, "id"), "UT-1", "unique"),
+    (("terminals", 1, "kind"), "gatway", "kind"),
+    (("epoch",), "2026-01-01T00:00:00", "timezone"),
+    (("shells",), [], "at least one shell"),
+    (("terminals",), [], "at least one shell and one terminal"),
 ])
 def test_rejects_invalid_scenario(tmp_path, path, value, match):
     with pytest.raises(ValueError, match=match):
         load_scenario(_write(tmp_path, _with(path, value)))
+
+
+def test_rejects_missing_epoch(tmp_path):
+    d = {k: v for k, v in BASE.items() if k != "epoch"}
+    with pytest.raises(ValueError, match="epoch is required"):
+        load_scenario(_write(tmp_path, d))

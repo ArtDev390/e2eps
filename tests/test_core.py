@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pytest
 
-from e2eps.frames import R_EARTH, geodetic_to_ecef
+from e2eps.frames import R_EARTH, geodetic_to_ecef, julian_date
 from e2eps.orbit import J2CircularPropagator, Shell, orbital_period_s, walker
 from e2eps.visibility import (Terminal, TerminalSet, compute_visibility,
                               elevation_reference, look_angles, passes)
@@ -40,6 +40,14 @@ def test_j2_regresses_raan_for_prograde_orbit():
 
 def test_geodetic_equator():
     assert np.allclose(geodetic_to_ecef(0, 0, 0), [R_EARTH, 0, 0])
+
+
+def test_julian_date_is_timezone_safe():
+    assert julian_date(datetime(2000, 1, 1, 12, tzinfo=timezone.utc)) == 2451545.0     # J2000
+    tokyo = datetime(2026, 1, 1, 9, tzinfo=timezone(timedelta(hours=9)))
+    assert julian_date(tokyo) == julian_date(EPOCH)                                    # same instant
+    with pytest.raises(ValueError, match="timezone"):
+        julian_date(datetime(2026, 1, 1))                                              # naive: ambiguous
 
 
 def test_satellite_overhead_is_90_deg_and_range_equals_altitude():

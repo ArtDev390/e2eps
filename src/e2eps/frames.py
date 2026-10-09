@@ -26,7 +26,13 @@ C_LIGHT = 299_792_458.0         # m/s
 
 
 def julian_date(dt: datetime) -> float:
-    """Julian date of a timezone-aware UTC datetime."""
+    """Julian date of a timezone-aware datetime.
+
+    Naive datetimes are rejected: astimezone() would read them as the machine's
+    local time, so the same input would give different orbits on different machines.
+    """
+    if dt.tzinfo is None or dt.utcoffset() is None:
+        raise ValueError(f"datetime {dt.isoformat()} has no timezone; use e.g. +00:00")
     dt = dt.astimezone(timezone.utc)
     j2000 = datetime(2000, 1, 1, 12, tzinfo=timezone.utc)
     return 2451545.0 + (dt - j2000).total_seconds() / 86400.0
