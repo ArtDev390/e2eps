@@ -31,12 +31,22 @@ def load_scenario(path: str | Path) -> Scenario:
             raise ValueError(f"{s.name}: pattern must be 'delta' or 'star'")
         if not (200 <= s.altitude_km <= 2000):
             raise ValueError(f"{s.name}: altitude {s.altitude_km} km outside LEO range")
+        if not (0 <= s.inclination_deg <= 180):
+            raise ValueError(f"{s.name}: inclination {s.inclination_deg} deg outside [0, 180]")
+        if not all(isinstance(v, int) and v >= 1 for v in (s.planes, s.sats_per_plane)):
+            raise ValueError(f"{s.name}: planes and sats_per_plane must be integers >= 1")
+        if not (isinstance(s.phasing, int) and 0 <= s.phasing < s.planes):   # Walker F in [0, P-1]
+            raise ValueError(f"{s.name}: phasing {s.phasing} outside [0, planes-1]")
     for t in terms:
         if not (-90 <= t.lat_deg <= 90 and 0 <= t.min_el_deg < 90):
             raise ValueError(f"{t.id}: invalid latitude or elevation mask")
+        if not (-180 <= t.lon_deg <= 180):
+            raise ValueError(f"{t.id}: longitude {t.lon_deg} deg outside [-180, 180]")
     if len({t.id for t in terms}) != len(terms):
         raise ValueError("terminal ids must be unique")
     time = d.get("time", {})
+    duration_h, step_s = float(time.get("duration_h", 2)), float(time.get("step_s", 30))
+    if not (duration_h > 0 and step_s > 0):
+        raise ValueError("time.duration_h and time.step_s must be > 0")
     return Scenario(d.get("name", Path(path).stem), datetime.fromisoformat(d["epoch"]),
-                    float(time.get("duration_h", 2)), float(time.get("step_s", 30)),
-                    shells, terms, hashlib.sha256(raw).hexdigest()[:12])
+                    duration_h, step_s, shells, terms, hashlib.sha256(raw).hexdigest()[:12])

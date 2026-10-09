@@ -22,6 +22,17 @@ def _write(tmp_path, d, name="scenario.json"):
     return p
 
 
+def _with(path, value):
+    """Copy of BASE with the value at a nested key path replaced."""
+    d = copy.deepcopy(BASE)
+    *keys, last = path
+    node = d
+    for k in keys:
+        node = node[k]
+    node[last] = value
+    return d
+
+
 def test_loads_valid_scenario(tmp_path):
     sc = load_scenario(_write(tmp_path, BASE))
     assert sc.name == "mini"
@@ -40,28 +51,43 @@ def test_defaults_name_and_time(tmp_path):
 
 
 def test_hash_changes_with_content(tmp_path):
-    d = copy.deepcopy(BASE)
-    d["shells"][0]["planes"] = 5
     a = load_scenario(_write(tmp_path, BASE, "a.json"))
-    b = load_scenario(_write(tmp_path, d, "b.json"))
+    b = load_scenario(_write(tmp_path, _with(("shells", 0, "planes"), 5), "b.json"))
     assert a.sha256 != b.sha256
+
+
+@pytest.mark.parametrize("path, value", [
+    (("shells", 0, "inclination_deg"), 0),                # equatorial
+    (("shells", 0, "inclination_deg"), 180),              # retrograde equatorial
+    (("shells", 0, "phasing"), 0),
+    (("shells", 0, "phasing"), 3),                        # planes - 1
+    (("terminals", 0, "lon_deg"), 180),
+    (("terminals", 0, "lon_deg"), -180),
+])
+def test_accepts_boundary_values(tmp_path, path, value):
+    load_scenario(_write(tmp_path, _with(path, value)))
 
 
 @pytest.mark.parametrize("path, value, match", [
     (("shells", 0, "pattern"), "walker", "pattern"),
     (("shells", 0, "altitude_km"), 100, "LEO"),
     (("shells", 0, "altitude_km"), 36000, "LEO"),
+    (("shells", 0, "inclination_deg"), -1, "inclination"),
+    (("shells", 0, "inclination_deg"), 181, "inclination"),
+    (("shells", 0, "planes"), 0, "planes"),
+    (("shells", 0, "planes"), 4.5, "planes"),
+    (("shells", 0, "sats_per_plane"), 0, "sats_per_plane"),
+    (("shells", 0, "phasing"), 4, "phasing"),             # planes = 4 -> F max is 3
+    (("shells", 0, "phasing"), -1, "phasing"),
+    (("time", "step_s"), 0, "step_s"),
+    (("time", "duration_h"), -1, "duration_h"),
     (("terminals", 0, "lat_deg"), 95, "latitude"),
+    (("terminals", 0, "lon_deg"), 181, "longitude"),
+    (("terminals", 0, "lon_deg"), -181, "longitude"),
     (("terminals", 0, "min_el_deg"), 90, "elevation"),
     (("terminals", 0, "min_el_deg"), -5, "elevation"),
     (("terminals", 1, "id"), "UT-1", "unique"),
 ])
 def test_rejects_invalid_scenario(tmp_path, path, value, match):
-    d = copy.deepcopy(BASE)
-    *keys, last = path
-    node = d
-    for k in keys:
-        node = node[k]
-    node[last] = value
     with pytest.raises(ValueError, match=match):
-        load_scenario(_write(tmp_path, d))
+        load_scenario(_write(tmp_path, _with(path, value)))
