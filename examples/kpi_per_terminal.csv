@@ -1,0 +1,9 @@
+terminal,availability_pct,mean_visible_sats,min_visible_sats,longest_outage_s,mean_serving_el_deg,access_delay_ms_mean,access_delay_ms_p95,handovers
+UT-London,100.0,11.71,8,0.0,67.0,3.86,4.33,69
+UT-Singapore,100.0,5.73,2,0.0,59.0,4.09,4.73,51
+UT-SaoPaulo,100.0,6.29,3,0.0,61.3,4.0,4.58,45
+UT-Tromso,100.0,15.36,11,0.0,65.3,3.93,4.37,76
+UT-NAtlantic-Ship,100.0,8.98,5,0.0,66.2,3.87,4.27,58
+UT-Nairobi,100.0,5.66,2,0.0,59.4,4.06,4.71,56
+GW-Frankfurt,100.0,27.6,24,0.0,66.6,3.87,4.37,59
+GW-Svalbard,100.0,44.8,40,0.0,67.7,3.88,4.31,83

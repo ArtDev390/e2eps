@@ -1,0 +1,12 @@
+{
+  "e2eps_version": "0.1.0",
+  "scenario": "illustrative_600",
+  "scenario_sha256": "e2880f276a09",
+  "satellites": 576,
+  "terminals": 8,
+  "time_steps": 241,
+  "step_s": 30.0,
+  "geometry_evaluations": 1110528,
+  "visible_links": 30400,
+  "runtime_s": 0.133
+}
