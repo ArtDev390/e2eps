@@ -3,3 +3,7 @@ __pycache__/
 .pytest_cache/
 out/
 .venv/
+# PyInstaller outputs: executables ship in the release ZIP, not in git
+build/
+dist/
+*.spec

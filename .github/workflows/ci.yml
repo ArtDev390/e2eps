@@ -1,0 +1,65 @@
+# Tests on every push / PR, then single-file executables for macOS, Windows and Linux.
+# PyInstaller cannot cross-compile, so each binary is built on its own OS runner.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      - name: CLI smoke run
+        run: e2eps --scenario scenarios/illustrative_600.json --hours 0.25 --out out/
+
+  build:
+    name: executable (${{ matrix.name }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest,   name: macos-arm64 }
+          - { os: windows-latest, name: windows-x64 }
+          - { os: ubuntu-latest,  name: linux-x64 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install . pyinstaller
+      - name: Build single-file executable
+        run: pyinstaller -F -n e2eps-${{ matrix.name }} --paths src src/e2eps/__main__.py
+      - name: Smoke-test the executable (no Python needed at runtime)
+        run: |
+          ./dist/e2eps-${{ matrix.name }} --scenario scenarios/illustrative_600.json --hours 0.25 --out smoke/
+          test -s smoke/run_meta.json && test -s smoke/kpi_per_terminal.csv
+      - uses: actions/upload-artifact@v7
+        with:
+          name: e2eps-${{ matrix.name }}
+          path: dist/e2eps-${{ matrix.name }}*
+          if-no-files-found: error
+          retention-days: 30

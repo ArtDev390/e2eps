@@ -40,6 +40,10 @@ For a single-file binary on your OS (~12 MB):
 pip install pyinstaller && pyinstaller -F -n e2eps --paths src src/e2eps/__main__.py   # -> dist/e2eps
 ```
 
+**CI:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the tests on Python 3.10–3.14 for every
+push, then builds and smoke-tests the executable on macOS (Apple Silicon), Windows and Linux.
+Download the binaries from the run's *Artifacts* section on the GitHub Actions page.
+
 ## Performance
 
 `python benchmarks/bench_visibility.py` on an Apple M5 laptop (16 GB, NumPy 2.5), 3 runs:
