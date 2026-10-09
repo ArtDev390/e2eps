@@ -1,4 +1,4 @@
-# E2EPS — Architecture and Workflow
+# E2EPS — Architecture, Workflow & Digital Twin
 
 ## 1. E2EPS software architecture
 
@@ -62,3 +62,52 @@ flowchart TD
   L --> M[(Results: KPI tables, time series, pass lists)]
   M --> N[Reports / dashboards / API]
 ```
+
+## 3. Digital Twin solutions architecture
+
+```mermaid
+flowchart TB
+  USERS[Engineering: Systems, Network, RF<br/>Operations, Product]
+  subgraph PRES[Presentation]
+    PORTAL[Web portal + 3D globe view]
+    DASH[KPI dashboards / notebooks]
+    GW[API gateway + IAM]
+  end
+  subgraph CTRL[Twin control plane]
+    SCN[Scenario & Config Service<br/>versioned scenarios]
+    WF[Workflow Orchestrator<br/>Argo / Airflow, parameter sweeps]
+    BUS[Co-simulation bus<br/>time sync + events: Kafka / DDS]
+  end
+  subgraph SIM[Simulators and emulators]
+    E2E[E2EPS<br/>analytical performance]
+    SPACE[Space Segment Emulator<br/>bus, payload, power/thermal, flight SW SIL/HIL]
+    GND[Ground Segment Emulator<br/>gateways, TT&C, NOC, SDN controller]
+    UT[User Terminal Emulator<br/>antenna tracking, terminal SW]
+    NET[Network Emulator<br/>packet-level: ns-3 / OMNeT++ / containers]
+  end
+  subgraph DATAP[Data platform]
+    LAKE[(Data lake: Parquet on object storage)]
+    TSDB[(Time-series DB)]
+    CAT[(Reference catalogue<br/>orbits, antennas, terminals)]
+  end
+  subgraph REAL[Real-world integration]
+    TLM[Live telemetry ingest]
+    FDS[Flight Dynamics System<br/>real ephemerides]
+    OSS[OSS/BSS: demand, customers]
+  end
+  subgraph PLAT[Platform]
+    K8S[Kubernetes on cloud + HPC/GPU pool]
+    OBS[CI/CD, observability, security]
+  end
+  USERS --> PORTAL & DASH --> GW --> SCN & WF
+  WF --> E2E & SPACE & GND & UT & NET
+  SPACE & GND & UT & NET <--> BUS
+  E2E -- "capacity / link-rate tables" --> NET
+  E2E & SPACE & GND & UT & NET --> LAKE
+  TLM --> TSDB --> LAKE
+  FDS --> CAT --> E2E & SPACE
+  OSS -- "demand maps" --> E2E
+  LAKE --> DASH
+  SIM -.runs on.-> K8S
+```
+
