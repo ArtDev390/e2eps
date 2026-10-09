@@ -110,7 +110,7 @@ flowchart LR
   changing the physics code. Peak memory is set by `chunk_steps`.
 - **Dot-product kernel.** Elevation and range are written as two matrix
   multiplies rather than building a `[T, G, N, 3]` line-of-sight array. This is
-  53× faster than the loop version, and the benchmark shows 207 M geometry
+  ~30–70× faster than the loop version, and the benchmark shows 207 M geometry
   evaluations in about 5 s on a laptop. The loop version is kept as
   `elevation_reference` and tested for equality.
 - **Azimuth only on the sparse set.** It costs an `atan2` per link, so it is
