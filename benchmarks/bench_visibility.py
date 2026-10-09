@@ -30,7 +30,7 @@ ts, t = terminals(4), np.arange(0, 600, 30.0)
 sat = prop.positions_ecef(t)
 n_eval = sat.shape[0] * sat.shape[1] * len(ts)
 ref, t_loop = timed(lambda: elevation_reference(sat, ts))
-(_, _, vec), t_vec = timed(lambda: look_angles(sat, ts))
+(_, vec), t_vec = timed(lambda: look_angles(sat, ts))
 assert np.allclose(ref, vec)
 print(f"[1] {n_eval:,} evaluations | loop {t_loop:.3f}s | vectorised {t_vec*1e3:.1f} ms "
       f"| speed-up x{t_loop / t_vec:,.0f}")
@@ -41,5 +41,5 @@ res, dt = timed(lambda: compute_visibility(prop, ts, t, chunk_steps=60))
 total = len(const) * len(ts) * len(t)
 print(f"[2] {total:,} evaluations in {dt:.1f}s ({total / dt / 1e6:.0f} M/s) | "
       f"visible links kept: {len(res.links['t']):,} ({100 * len(res.links['t']) / total:.1f}% of the cube)")
-print(f"    peak chunk cube ~ {60 * 500 * len(const) * 3 * 8 / 1e6:.0f} MB vs full cube "
-      f"{total * 3 * 8 / 1e9:.1f} GB if not chunked")
+print(f"    memory: one [T,G,N] float64 array per chunk ~ {60 * 500 * len(const) * 8 / 1e6:.0f} MB "
+      f"vs {total * 8 / 1e9:.1f} GB for the whole run if not chunked")

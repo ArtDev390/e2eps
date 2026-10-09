@@ -50,12 +50,29 @@ class TerminalSet:
 
 
 def look_angles(sat_ecef: np.ndarray, ts: TerminalSet):
-    """Vectorised kernel. sat_ecef [T, N, 3] -> enu [T, G, N, 3], range [T, G, N], elevation [T, G, N] (rad)."""
-    rho = sat_ecef[:, None, :, :] - ts.ecef[None, :, None, :]
-    enu = np.einsum("gij,tgnj->tgni", ts.rot, rho, optimize=True)
-    rng = np.linalg.norm(enu, axis=-1)
-    el = np.arcsin(np.clip(enu[..., 2] / rng, -1.0, 1.0))
-    return enu, rng, el
+    """Vectorised kernel: sat_ecef [T, N, 3] -> range [T, G, N] (m), elevation [T, G, N] (rad).
+
+    Avoids materialising the [T, G, N, 3] line-of-sight cube: elevation and range
+    are rewritten as dot products, so the heavy work is two BLAS matrix multiplies
+      up    = sat . u_g - gs . u_g          (u_g = local "up" unit vector)
+      |r|^2 = |sat|^2 + |gs|^2 - 2 sat . gs
+    Azimuth is only needed for visible links, so it is computed later on the sparse set.
+    """
+    U = ts.rot[:, 2, :]                                              # [G, 3]
+    up = (sat_ecef @ U.T).transpose(0, 2, 1) - np.einsum("gj,gj->g", ts.ecef, U)[None, :, None]
+    sg = (sat_ecef @ ts.ecef.T).transpose(0, 2, 1)                  # [T, G, N]
+    r2 = (sat_ecef**2).sum(-1)[:, None, :] + (ts.ecef**2).sum(-1)[None, :, None] - 2.0 * sg
+    rng = np.sqrt(r2)
+    el = np.arcsin(np.clip(up / rng, -1.0, 1.0))
+    return rng, el
+
+
+def azimuth_deg(sat_ecef: np.ndarray, ts: TerminalSet, ti, gi, ni) -> np.ndarray:
+    """Azimuth (deg, from North, clockwise) for a sparse set of (t, terminal, sat) links."""
+    rho = sat_ecef[ti, ni] - ts.ecef[gi]
+    e = np.einsum("kj,kj->k", rho, ts.rot[gi, 0])
+    n = np.einsum("kj,kj->k", rho, ts.rot[gi, 1])
+    return np.rad2deg(np.mod(np.arctan2(e, n), 2 * np.pi))
 
 
 def elevation_reference(sat_ecef: np.ndarray, ts: TerminalSet) -> np.ndarray:
@@ -97,7 +114,8 @@ def compute_visibility(prop: Propagator, ts: TerminalSet, t_s: np.ndarray,
 
     for s in range(0, T, chunk_steps):
         sl = slice(s, min(s + chunk_steps, T))
-        enu, rng, el = look_angles(prop.positions_ecef(t_s[sl]), ts)
+        sat = prop.positions_ecef(t_s[sl])
+        rng, el = look_angles(sat, ts)
         mask = el >= ts.min_el_rad[None, :, None]                 # per-terminal mask
         n_vis[sl] = mask.sum(axis=2)
         el_masked = np.where(mask, el, -np.inf)
@@ -110,9 +128,8 @@ def compute_visibility(prop: Propagator, ts: TerminalSet, t_s: np.ndarray,
         best_rng[sl] = np.where(has, brg, np.nan)
 
         ti, gi, ni = np.nonzero(mask)                             # sparsify
-        e = enu[ti, gi, ni]
         parts["t"].append(ti + s); parts["g"].append(gi); parts["n"].append(ni)
-        parts["az_deg"].append(np.rad2deg(np.mod(np.arctan2(e[:, 0], e[:, 1]), 2 * np.pi)))
+        parts["az_deg"].append(azimuth_deg(sat, ts, ti, gi, ni))
         parts["el_deg"].append(np.rad2deg(el[ti, gi, ni]))
         parts["range_m"].append(rng[ti, gi, ni])
 

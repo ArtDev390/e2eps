@@ -45,7 +45,7 @@ def test_geodetic_equator():
 def test_satellite_overhead_is_90_deg_and_range_equals_altitude():
     ts = TerminalSet([Terminal("gs", 0.0, 0.0)])
     sat = geodetic_to_ecef(0.0, 0.0, 1050e3)[None, None, :]
-    _, rng, el = look_angles(sat, ts)
+    rng, el = look_angles(sat, ts)
     assert np.isclose(np.rad2deg(el[0, 0, 0]), 90.0)
     assert np.isclose(rng[0, 0, 0], 1050e3)
 
@@ -54,7 +54,7 @@ def test_vectorised_matches_loop_reference():
     prop = J2CircularPropagator(walker([SHELL]), EPOCH)
     ts = TerminalSet([Terminal("a", 50.06, 19.94), Terminal("b", -33.9, 18.4)])
     sat = prop.positions_ecef(np.arange(0, 600, 60.0))
-    _, _, el = look_angles(sat, ts)
+    _, el = look_angles(sat, ts)
     assert np.allclose(el, elevation_reference(sat, ts))
 
 
@@ -77,3 +77,13 @@ def test_passes_are_consistent_with_links():
     assert len(p["g"]) > 0
     assert np.all(p["end_s"] >= p["start_s"])
     assert np.all(p["max_el_deg"] >= 10)
+
+
+def test_azimuth_cardinal_directions():
+    from e2eps.visibility import azimuth_deg
+    ts = TerminalSet([Terminal("gs", 0.0, 0.0)])
+    north = geodetic_to_ecef(5.0, 0.0, 1050e3)
+    east = geodetic_to_ecef(0.0, 5.0, 1050e3)
+    sat = np.stack((north, east))[None]                # [1, 2, 3]
+    az = azimuth_deg(sat, ts, np.array([0, 0]), np.array([0, 0]), np.array([0, 1]))
+    assert np.allclose(az, [0.0, 90.0], atol=1e-6)
