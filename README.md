@@ -50,8 +50,9 @@ pip install pyinstaller && pyinstaller -F -n e2eps --paths src src/e2eps/__main_
 | Chunked full run | 576 sats × 500 terminals × 6 h @ 30 s = **207 M** geometry evaluations | **5.1–5.6 s** (37–41 M evaluations/s, single process) |
 | Memory | same run, `chunk_steps=60` | ~138 MB per chunk vs 1.7 GB if not chunked; only **1.5%** of links are visible and kept |
 
-Time chunks are independent, so the next step is spreading them across Dask/Ray compute workers
-(see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)).
+At full scale (global grid, 24 h at 10 s, ≈ 2 × 10¹¹ evaluations) a single process needs ~85 min and
+the time-only chunks no longer fit in memory. The plan (time × terminal tiles, Numba/JAX, Dask/Ray
+workers) is in [`docs/ARCHITECTURE.md` §4](docs/ARCHITECTURE.md#4-scaling-strategy-the-computing-limitations).
 
 ## Limitations (honest list)
 
